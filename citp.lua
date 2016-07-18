@@ -38,15 +38,15 @@ ct = {
 }
 
 lt = {
-  1 = "Media (Images & Video)",
-  2 = "Effects",
-  3 = "Cues",
-  4 = "Crossfades",
-  5 = "Masks",
-  6 = "Blend presets",
-  7 = "Effect presets",
-  8 = "Image presets",
-  9 = "3D meshes"
+  "Media (Images & Video)",
+  "Effects",
+  "Cues",
+  "Crossfades",
+  "Masks",
+  "Blend presets",
+  "Effect presets",
+  "Image presets",
+  "3D meshes"
 }
 
 function citp_proto.dissector(buffer,pinfo,tree)  
