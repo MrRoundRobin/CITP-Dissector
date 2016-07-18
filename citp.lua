@@ -5,8 +5,8 @@ udp_table = DissectorTable.get("udp.port")
 tcp_table = DissectorTable.get("tcp.port")
 
 -- Globals
-dissector_version = "1.4"
-dissector_date = "2015-11-09"
+dissector_version = "1.5"
+dissector_date = "2016-07-18"
 listeningport = 0
 start = 0
 count = 0
@@ -37,19 +37,117 @@ ct = {
   VSrc = "Video Sources"
 }
 
-lt = {
-  "Media (Images & Video)",
-  "Effects",
-  "Cues",
-  "Crossfades",
-  "Masks",
-  "Blend presets",
-  "Effect presets",
-  "Image presets",
-  "3D meshes"
+
+-- Fields
+citp_fields = {
+  -- CITP Fields
+  version             = ProtoField.string("citp.version", "Version"),
+  request_response_id = ProtoField.uint16("citp.request_response_id", "Request/Response ID"),
+  message_size        = ProtoField.uint32("citp.message_size", "Message Size"),
+  message_part_count  = ProtoField.uint16("citp.message_part_count", "Message Part Count"),
+  message_part        = ProtoField.uint16("citp.message_part", "Message Part"),
+  content_type        = ProtoField.string("citp.content_type", "Content Type"),
+
+  -- PInf Fields
+  pinf_content_type = ProtoField.string("citp.pinf.content_type", "PInf Content Type"),
+  pinf_name = ProtoField.stringz("citp.pinf.name", "Name"),
+
+  -- PInf/PLoc Fields
+  pinf_ploc_listening_tcp_port = ProtoField.uint16("citp.pinf.ploc.listening_tcp_port", "Listening TCP Port"),
+  pinf_ploc_type               = ProtoField.stringz("citp.pinf.ploc.type", "Type"),
+  pinf_ploc_state              = ProtoField.stringz("citp.pinf.ploc.state", "State"),
+
+  -- MSEX Fields
+  msex_version         = ProtoField.string("citp.msex.version", "MSEX Version"),
+  msex_content_type    = ProtoField.string("citp.msex.content_type", "MSEX Content Type"),
+  msex_format          = ProtoField.string("citp.msex.format", "Format"),
+  msex_library_type    = ProtoField.uint8("citp.msex.library_type", "Library Type", base.DEC, {
+    [1] = "Media",
+    [2] = "Effects"
+  }),
+  msex_library_number    = ProtoField.uint8("citp.msex.library_number", "Library Number"),
+  msex_library_id        = ProtoField.string("citp.msex.library_id", "Library ID"),
+  msex_parent_library_id = ProtoField.string("citp.msex.parent_library_id", "Parent Library ID"),
+  msex_dimensions        = ProtoField.string("citp.msex.dimensions", "Dimensions"),
+  msex_fps               = ProtoField.uint8("citp.msex.fps", "FPS"),
+  msex_timeout           = ProtoField.uint8("citp.msex.timeout", "Timeout"),
+  msex_buffer_size       = ProtoField.uint8("citp.msex.buffer_size", "Buffer Size"),
+  msex_buffer            = ProtoField.none("citp.msex.buffer", "Buffer"),
+
+  msex_layer_number = ProtoField.uint8("citp.msex.layer_number", "Layer Number"),
+
+  msex_layer_status                   = ProtoField.uint32("citp.msex.layer.status", "Layer Status", base.HEX),
+  msex_layer_status_playing           = ProtoField.uint32("citp.msex.layer.status.playing", "Media Playing", base.DEC, nil, 0x0001),
+  msex_layer_status_playback_reverse  = ProtoField.uint32("citp.msex.layer.status.reverse", "Playback Reverse", base.DEC, nil, 0x0002),
+  msex_layer_status_playback_looping  = ProtoField.uint32("citp.msex.layer.status.looping", "Playback Looping", base.DEC, nil, 0x0004),
+  msex_layer_status_playback_bouncing = ProtoField.uint32("citp.msex.layer.status.bouncing", "Playback Bouncing", base.DEC, nil, 0x0008),
+  msex_layer_status_playback_random   = ProtoField.uint32("citp.msex.layer.status.random", "Playback Random", base.DEC, nil, 0x0010),
+  msex_layer_status_paused            = ProtoField.uint32("citp.msex.layer.status.paused", "Media Paused", base.DEC, nil, 0x0020),
+
+  msex_physical_output = ProtoField.uint8("citp.msex.physical_output", "Physical Output"),
+
+  msex_source_identifier = ProtoField.uint16("citp.source_identifier", "Source Identifier"),
+
+  msex_thumbnail_flags                 = ProtoField.uint8("citp.msex.thumbnail_flags", "Thumbnail Flags", base.HEX),
+  msex_thumbnail_flags_preserve_aspect = ProtoField.uint8("citp.msex.thumbnail_flags.preserve_aspect", "Preserve Aspect Ratio", base.DEC, nil, 0x01),
+
+  msex_library_count   = ProtoField.uint8("citp.msex.library.count", "Library Count"),
+  msex_library_count12 = ProtoField.uint16("citp.msex.library.count12", "Library Count"),
+
+  msex_element_count   = ProtoField.uint8("citp.msex.element.count", "Element Count"),
+  msex_element_count12 = ProtoField.uint16("citp.msex.element.count12", "Element Count"),
+
+  msex_element_number        = ProtoField.uint8("citp.msex.element.number", "Element Number"),
+  msex_element_serial_number = ProtoField.uint32("citp.msex.element.serial_number", "SerialNumber"),
+  msex_element_dmx_range_min = ProtoField.uint8("citp.msex.element.dmx_range_min", "DMXRangeMin"),
+  msex_element_dmx_range_max = ProtoField.uint8("citp.msex.element.dmx_range_max", "DMXRangeMax"),
+  msex_element_name          = ProtoField.string("citp.msex.element.name", "Name"),
+
+  msex_media_position  = ProtoField.uint32("citp.msex.media.position", "Media Position"),
+  msex_media_length    = ProtoField.uint32("citp.msex.media.length", "Media Length"),
+  msex_media_timestamp = ProtoField.uint64("citp.msex.media.timestamp", "Media Timestamp"),
+
+  msex_server_uuid = ProtoField.string("citp.msex.server.uuid", "UUID"),
+
+  msex_source_flags                 = ProtoField.uint16("citp.msex.source_flags", "Source Flags", base.HEX),
+  msex_source_flags_without_effects = ProtoField.uint16("citp.msex.source_flags.without_effects", "Without Effects", base.DEC, nil, 0x0001),
+
+  -- MSEX/CInf Fields
+  msex_cinf_supported_version_count = ProtoField.uint8("citp.msex.cinf.supported_version_count", "Supported Version Count"),
+  msex_cinf_supported_version       = ProtoField.string("citp.msex.cinf.supported_version", "Supported Version"),
+
+  -- MSEX/SInf Fields
+  msex_sinf_product_name            = ProtoField.string("citp.msex.sinf.product_name", "Product Name"),
+  msex_sinf_product_version         = ProtoField.string("citp.msex.sinf.product_version", "Product Version"),
+  msex_sinf_supported_version_count = ProtoField.uint8("citp.msex.sinf.supported_version_count", "Supported Version Count"),
+
+  msex_sinf_supported_library_types                = ProtoField.uint16("citp.msex.sinf.supported_library_types", "Supported Library Types", base.HEX),
+  msex_sinf_supported_library_types_media          = ProtoField.uint16("citp.msex.sinf.supported_library_types_media", "Media (Images & Video)", base.DEC, nil, 0x0001),
+  msex_sinf_supported_library_types_effects        = ProtoField.uint16("citp.msex.sinf.supported_library_types_effects", "Effects", base.DEC, nil, 0x0002),
+  msex_sinf_supported_library_types_cues           = ProtoField.uint16("citp.msex.sinf.supported_library_types_cues", "Cues", base.DEC, nil, 0x0004),
+  msex_sinf_supported_library_types_crossfades     = ProtoField.uint16("citp.msex.sinf.supported_library_types_crossfades", "Crossfades", base.DEC, nil, 0x0008),
+  msex_sinf_supported_library_types_masks          = ProtoField.uint16("citp.msex.sinf.supported_library_types_masks", "Masks", base.DEC, nil, 0x0010),
+  msex_sinf_supported_library_types_blend_effects  = ProtoField.uint16("citp.msex.sinf.supported_library_types_blend_effects", "Blend presets", base.DEC, nil, 0x0020),
+  msex_sinf_supported_library_types_effect_presets = ProtoField.uint16("citp.msex.sinf.supported_library_types_effect_presets", "Effect presets", base.DEC, nil, 0x0040),
+  msex_sinf_supported_library_types_image_presets  = ProtoField.uint16("citp.msex.sinf.supported_library_types_image_presets", "Image presets", base.DEC, nil, 0x0080),
+  msex_sinf_supported_library_types_3d_meshes      = ProtoField.uint16("citp.msex.sinf.supported_library_types_3d_meshes", "3D meshes", base.DEC, nil, 0x0100),
+
+  msex_sinf_thumbnail_format_count  = ProtoField.uint8("citp.msex.sinf.thumbnail_format_count", "Thumbnail Format Count"),
+  msex_sinf_stream_format_count     = ProtoField.uint8("citp.msex.sinf.stream_format_count", "Stream Format Count"),
+  msex_sinf_layer_count             = ProtoField.uint8("citp.msex.sinf.layer_count", "Layer Count"),
+  msex_sinf_layer_information       = ProtoField.string("citp.msex.sinf.layer_information", "Layer Information"),
+
+  -- MSEX/Nack Fields
+  msex_nack_received_content_type = ProtoField.string("citp.msex.nack.received_content_type", "Received MSEX Content Type"),
+
+  -- MSEX/VSrc Fields
+  msex_vsrc_source_count = ProtoField.uint16("citp.vsrc.source.count", "Source Count"),
+  msex_vsrc_source_name  = ProtoField.string("citp.vsrc.source.name", "Source Name"),
 }
 
-function citp_proto.dissector(buffer,pinfo,tree)  
+citp_proto.fields = citp_fields
+
+function citp_proto.dissector(buffer,pinfo,tree)
   listeningport = 0
   start = 0
   
@@ -61,197 +159,177 @@ function citp_proto.dissector(buffer,pinfo,tree)
   
   count = 4
   
-  cookie = buffer (start,count):string()
+  cookie = buffer(start,count):string()
   pinfo.cols.protocol = cookie
-  subtree = tree:add(citp_proto,buffer(), string.format("Controller Interface Transport Protocol,  Length: %d Header: 22",buffer:len()))
+  subtree = tree:add_le(citp_proto, buffer(), string.format("Controller Interface Transport Protocol,  Length: %d Header: 20", buffer:len()))
   start = start + count
   
   count = 1
-  citp_version = string.format("%d.%d",buffer (start,count):le_uint(),buffer (start+1,count):le_uint())
-  subtree:add(buffer(start,count+1), "Version: " .. citp_version)
+  citp_version = string.format("%d.%d", buffer(start,count):le_uint(), buffer(start+1,count):le_uint())
+  subtree:add_le(citp_fields.version, buffer(start,2), citp_version)
 
-  subtree:add(buffer(6,2), "Request/Response ID: " .. buffer(6,2):le_uint())
-  message_size = buffer(8,4):le_uint()
-  subtree:add(buffer(8,4), "Message Size: " .. message_size)
-  subtree:add(buffer(12,2), "Message Part Count: " .. buffer(12,2):le_uint())
-  subtree:add(buffer(14,2), "Message Part: " .. buffer(14,2):le_uint())
+  start = start + 2
+
+  subtree:add_le(citp_fields.request_response_id, buffer(start,2), buffer(start,2):le_uint())
   
-  str = ct[buffer(16,4):string()] or "(Unknown)"
-  subtree = subtree:add(buffer(16,4), string.format("Content Type: %s - %s, Length: %d",buffer(16,4):string(),
-                                                                            str,
-                                                                            string.len(buffer(20):string())))
-  pinfo.cols.info = string.format("CITP %s >",citp_version) -- info
+  message_size = buffer(8,4):le_uint()
+
+  subtree:add_le(citp_fields.message_size, buffer(8,4), buffer(8,4):le_uint())
+  subtree:add_le(citp_fields.message_part_count, buffer(12,2), buffer(12,2):le_uint())
+  subtree:add_le(citp_fields.message_part, buffer(14,2), buffer(14,2):le_uint())
+  
+  start = 16
+
+  content_type = buffer(start,4):string()
+
+  str = ct[content_type] or "(Unknown)"
+  str = string.format("- %s, Length: %d", str, string.len(buffer(20):string()))
+  
+  subtree, value = subtree:add_packet_field(citp_fields.content_type, buffer(16,4), ENC_STRING, str)
+  
+  pinfo.cols.info = "CITP " .. citp_version .. " > " .. content_type
   
   -- Calculate message size and reassemble PDUs if needed.
   if message_size > buffer:len() then
     pinfo.desegment_len = message_size - buffer:len()
     return
   end
-  
-  -- PINF ------------------------------------------------------------------------
-  -- Peer Information layer
-  if buffer(16,4):string() == "PINF" then
-    pinfo.cols.info:append ("PINF >")   -- info
-    str = ct[buffer(20,4):string()] or "(Unknown)"
-    subtree:add(buffer(20,4), "Content Type: " .. buffer(20,4):string() .. " - " ..str)
+
+  start = 20
+
+  -- PINF - Peer Information layer -----------------------------------------------
+  if content_type == "PINF" then
+
+    pinf_content_type = buffer(start,4):string()
+
+    str = ct[pinf_content_type] or "(Unknown)"
+
+    subtree, value = subtree:add_packet_field(citp_fields.pinf_content_type, buffer(start,4), ENC_STRING, "- " .. str)
+
+    start = start + 4
+
+    pinfo.cols.info:append(" > " .. pinf_content_type)
+
+    -- PINF/PNam -----------------------------------------------------------------
+    if pinf_content_type == "PNam" then
+      name, count = citp_extract_ucs1(buffer, start)
+      subtree:add_le(citp_fields.pinf_name, buffer(start, count))
+    end -- PName
     
-    -- PNam
-    if buffer(20,4):string() == "PNam" then
-      start = 26
-      count = string.find(buffer(start):string(),"\0",1)
-      subtree:add(buffer(start, count),"Name: ".. buffer(start):string())
-    end
-    
-    --PLoc
-    if buffer(20,4):string() == "PLoc" then
-      listeningport = buffer(24,2):le_uint()
-      subtree:add(buffer(24,2), "Listening Port: " .. (listeningport))
+    -- PINF/PLoc -----------------------------------------------------------------
+    if pinf_content_type == "PLoc" then
+      listeningport = buffer(start,2):le_uint()
+
+      subtree:add_le(citp_fields.pinf_ploc_listening_tcp_port, buffer(start,2))
       
-      -- If we listening port is non zero then add to the dissector
+      -- If listening port is non zero then add to the dissector
       if listeningport then
         CITP_add_port(listeningport)
       end
       listeningport = 0
       
-      start = 26
-      count = string.find(buffer(start):string(),"\0",1)
-      subtree:add(buffer(start, count),"Type: ".. buffer(start):string())
+      start = start + 2
+
+      str, count = citp_extract_ucs1(buffer, start)
+      subtree:add_le(citp_fields.pinf_ploc_type, buffer(start, count))
+      start = start + count
+      
+      name, count = citp_extract_ucs1(buffer, start)
+      subtree:add_le(citp_fields.pinf_name, buffer(start, count))
       start = start+count
       
-      count = string.find(buffer(start):string(),"\0",1)
-      name = buffer(start):string()
-      subtree:add(buffer(start, count),"Name: ".. name)
-      
-      start = start+count
-      count = string.find(buffer(start):string(),"\0",1)
-      subtree:add(buffer(start, count),"State: ".. buffer(start):string())
-    end
-    pinfo.cols.info:append (name)   -- info    
-  end
+      str, count = citp_extract_ucs1(buffer, start)
+      subtree:add_le(citp_fields.pinf_ploc_state, buffer(start, count))
+    end -- PLoc
+
+    pinfo.cols.info:append(" > " .. name)
+  end -- PINF
   
   -- MSEX ------------------------------------------------------------------------
-  if buffer (16,4):string() == "MSEX" then
+  if content_type == "MSEX" then
     local str = ""
     
-    str = ct[buffer(22,4):string()] or "(Unknown)"
-    
-    subtree:add(buffer(20), string.format("Length: %s",buffer:len()-20))
-    version = buffer (20,1):uint() .. "." .. buffer(21,1):uint()
-    subtree:add(buffer(20,2), "Version: " .. version)  
-    subtree:add(buffer(22,4), "Content Type: " .. buffer(22,4):string().." - "..str)
-    
-    pinfo.cols.info:append ("MSEX ".. version .." >") -- info
-    -- MSEX/CInf --------------------------------------------------------------------
-    -- Client Information message
-    if buffer(22,4):string() == "CInf" then
-      pinfo.cols.info:append ("CInf >") -- info
-      version_tree = subtree:add(buffer(26,1), "Supported Version Count: ".. buffer(26,1):uint())
+    version = buffer(start,1):uint() .. "." .. buffer(start+1,1):uint()
+    subtree:add_le(citp_fields.msex_version, buffer(start+1,2), version)
 
-      start = 27 
-      for i=1,buffer(26,1):uint() do
-        local supportVersion = buffer(start+1,1):uint() .. "." .. buffer(start,1):uint()
-        version_tree:add(buffer(start,2), "Supports: ".. supportVersion)
+    start = start + 2
+
+    msex_content_type = buffer(start,4):string()
+
+    str = ct[msex_content_type] or "(Unknown)"
+    
+    subtree, value = subtree:add_packet_field(citp_fields.msex_content_type, buffer(22,4), ENC_STRING, "- " .. str)
+    
+    start = start + 4
+
+    pinfo.cols.info:append (" " .. version .. " > " .. msex_content_type)
+
+    -- MSEX/CInf - Client Information message ------------------------------------
+    if msex_content_type == "CInf" then
+      subtree, value = subtree:add_packet_field(citp_fields.msex_cinf_supported_version_count, buffer(start,1), ENC_LITTLE_ENDIAN)
+
+      start = start+1
+
+      for i=1,buffer(start-1,1):uint() do
+        local support_version = buffer(start+1,1):uint() .. "." .. buffer(start,1):uint()
+        subtree:add_le(citp_fields.msex_cinf_supported_version, buffer(start,2), support_version)
         start = start+2
       end
-    end
+    end -- CInf
     
-    -- MSEX/SInf -------------------------------------------------------------------
-    -- Server Information message
-    if (buffer(22,4):string() == "SInf") then
-      pinfo.cols.info:append ("SInf >") -- info
-      start = 26
-    
+    -- MSEX/SInf - Server Information message ------------------------------------
+    if msex_content_type == "SInf" then
       if version >= "1.2" then
         count = 36
-        subtree:add(buffer(start,count), "UUID: ".. buffer(start,count):string())
+        subtree:add_le(citp_fields.msex_server_uuid, buffer(start,count), buffer(start,count))
         start = start + count
       end
 
       -- Product Name (ASCII)
-      count = 0
-      str=""
-      while buffer(start+count,1):uint() ~= 0 do
-        str = str .. buffer(start+count,1):string()
-        count = count + 2
-      end
-      count = count + 2
-      
-      subtree:add(buffer(start, count),"Product Name (ASCII): ".. str)
+      str, count = citp_extract_ucs2(buffer, start)
+      pinfo.cols.info:append(" > Server: " .. str)
+      subtree:add_le(citp_fields.msex_sinf_product_name, buffer(start, count), str)
       start = start + count
       
       count = 2
-      local productVersion = buffer (start,1):uint() .. "." .. buffer(start+1,1):uint()
+      local product_version = buffer(start,1):le_uint() .. "." .. buffer(start+1,1):le_uint()
 
       if version >= "1.2" then
         count = 3
-        productVersion = productVersion .. "." .. buffer(start+2,1)
+        product_version = product_version .. "." .. buffer(start+2,1)
       end
 
-      subtree:add(buffer(start,count), "Product Version: " .. productVersion)
+      pinfo.cols.info:append(" (" .. product_version .. ")")
+      subtree:add_le(citp_fields.msex_sinf_product_version, buffer(start,count), product_version)
       start = start + count
       
       if version >= "1.2" then
-        subtree:add(buffer(start,1), "Supported Version Count: ".. buffer(start,1):uint())
+        version_subtree, value = subtree:add_packet_field(citp_fields.msex_sinf_supported_version_count, buffer(start,1), ENC_LITTLE_ENDIAN)
 
         start = start + 1 
         for i=1,buffer(start-1,1):uint() do
-          local supportVersion = buffer(start,1):uint() .. "." .. buffer(start+1,1):uint()
-          subtree:add(buffer(start,2), "Supports: ".. supportVersion)
+          local support_version = buffer(start,1):uint() .. "." .. buffer(start+1,1):uint()
+          subtree:add_le(citp_fields.msex_version, buffer(start,2), support_version)
           start = start+2
         end
 
-        supported_types = buffer(start,1)
-
-        if bit.band(supported_types,00000001) > 0 then
-          str = str .. lt[1] .. ", "
-        end
-        if bit.band(supported_types,00000002) > 0 then
-          str = str .. lt[2] .. ", "
-        end
-        if bit.band(supported_types,00000004) > 0 then
-          str = str .. lt[3] .. ", "
-        end
-        if bit.band(supported_types,00000008) > 0 then
-          str = str .. lt[4] .. ", "
-        end
-        if bit.band(supported_types,00000016) > 0 then
-          str = str .. lt[5] .. ", "
-        end
-        if bit.band(supported_types,00000032) > 0 then
-          str = str .. lt[6] .. ", "
-        end
-        if bit.band(supported_types,00000064) > 0 then
-          str = str .. lt[7] .. ", "
-        end
-        if bit.band(supported_types,00000128) > 0 then
-          str = str .. lt[8] .. ", "
-        end
-        if bit.band(supported_types,00000256) > 0 then
-          str = str .. lt[9] .. ", "
-        end
-        if current_stat == "00000000" then
-          str = "None, "
-        end
-        
-        str = string.sub(str,1,-3)
-
-        subtree:add(buffer(start,1), "Supported Library Types: " .. str)
+        subtree:add_le(citp_fields.msex_sinf_supported_library_types, buffer(start,1))
 
         start = start + 1
 
-        subtree:add(buffer(start,1), "Thumbnail Format Count: ".. buffer(start,1):uint())
+        thumbnail_subtree, value = subtree:add_packet_field(citp_fields.msex_sinf_thumbnail_format_count, buffer(start,1), ENC_LITTLE_ENDIAN)
 
         start = start + 1 
         for i=0,buffer(start-1,1):uint() do
-          subtree:add(buffer(start,4), "Thumbnail Format: ".. buffer(start,4):string())
+          thumbnail_subtree:add_le(citp_fields.msex_format, buffer(start,4))
           start = start+4
         end
 
-        subtree:add(buffer(start,1), "Stream Format Count: ".. buffer(start,1):uint())
+        stream_subtree, value = subtree:add_packet_field(citp_fields.msex_sinf_stream_format_count, buffer(start,1), ENC_LITTLE_ENDIAN)
 
         start = start + 1 
         for i=0,buffer(start-1,1):uint() do
-          subtree:add(buffer(start,4), "Stream Format: ".. buffer(start,4):string())
+          stream_subtree:add_le(citp_fields.msex_format, buffer(start,4))
           start = start+4
         end
 
@@ -259,842 +337,680 @@ function citp_proto.dissector(buffer,pinfo,tree)
 
       count = 1
       layercount = buffer(start, count):uint()
-      dmx = subtree:add(buffer(start,count), "Number of Layers: " .. layercount)
+      layer_subtree, value = subtree:add_packet_field(citp_fields.msex_sinf_layer_count, buffer(start,count), ENC_LITTLE_ENDIAN)
       start = start + count
       
       for i = 1, layercount do
-        count = string.find(buffer(start):string(),"\0",1)
-        dmx:add(buffer(start, count), "Layer ".. i .." DMX (proto/net/uni/chan.): " .. buffer(start):string())
+        info, count = citp_extract_ucs1(buffer, start)
+        layer_subtree:add_le(citp_fields.msex_sinf_layer_information, buffer(start, count), "Layer ".. i .." DMX (proto/net/uni/chan.): " .. info)
         start = start + count
       end
-      pinfo.cols.info:append (string.format("Server: %s Layers: %d", str, layercount))
-    end
+      pinfo.cols.info:append(", Layers: " .. layercount)
+    end -- SInf
     
-    -- MSEX/Nack ------------------------------------------------------------------
-    -- Negative Acknowledge message
-    if buffer(22,4):string() == "Nack" then
-      pinfo.cols.info:append ("Nack >") -- info
-      subtree:add(buffer(22),"Received Content: " .. buffer(22):string())
-    end
+    -- MSEX/Nack - Negative Acknowledge message ----------------------------------
+    if msex_content_type == "Nack" then
+      subtree:add_le(citp_fields.msex_nack_received_content_type, buffer(start))
+    end -- Nack
     
-    -- MSEX/StFr ------------------------------------------------------------------
-    -- Stream Frame message
-    if buffer(22,4):string() == "StFr" then
-      pinfo.cols.info:append ("StFr >") -- info
-      start = 26
-      
+    -- MSEX/StFr - Stream Frame message ------------------------------------------
+    if msex_content_type == "StFr" then
       if version >= "1.2" then
-        subtree:add(buffer(start,36), "Media Server UUID: " .. buffer(start,36):string())
+        subtree:add_le(citp_fields.msex_server_uuid, buffer(start,36))
         start = start + 36
       end
 
       -- Source ID
       count = 2
       sourceIdentifier = buffer(start,count):le_uint()
-      subtree:add(buffer(start,count),"SourceIdentifier: " .. sourceIdentifier)
+      subtree:add_le(citp_fields.msex_source_identifier, buffer(start,count))
       start = start + count
       
       -- Thumbs Format
       count = 4
-      frameFormat = buffer(start,count):string()      
-      subtree:add(buffer(start,count),"FrameFormat:  " .. frameFormat)
+      frameFormat = buffer(start,count):string()
+      subtree:add_le(citp_fields.msex_format, buffer(start,count))
       start = start + count
       
       -- Dimentions
-      dims, count = MSEX_Dims (buffer, start)
-      subtree:add(buffer(start,count), string.format("Dimensions: %s", dims))
+      dims, count = extract_msex_dimensions (buffer, start)
+      subtree:add_le(citp_fields.msex_dimensions, buffer(start,count), dims)
       start = start + count
       
       -- Buffer Size
       count = 2
-      subtree:add(buffer(start,count),"BufferSize: " .. buffer(start,count):uint())
-      bufferSize = buffer(start,count):le_uint()
+      subtree:add_le(citp_fields.msex_buffer_size, buffer(start,count))
       start = start + count
       
-      pinfo.cols.info:append (string.format("SOURCE:%d %s %s",
+      subtree:add_le(citp_fields.msex_buffer, buffer(start))
+
+      pinfo.cols.info:append (string.format(" > Source:%d %s %s",
                                             sourceIdentifier,
                                             frameFormat,
                                             dims
                                             ))
-    end
+    end -- StFr
     
-    -- MSEX/RqSt ------------------------------------------------------------------
-    -- Request Stream message
-    if buffer(22,4):string() == "RqSt" then
-      pinfo.cols.info:append ("RqSt >") -- info
-      
-      start = 26
-      
+    -- MSEX/RqSt - Request Stream message ----------------------------------------
+    if msex_content_type == "RqSt" then
       -- Source ID
       count = 2
       local sourceIdentifier = buffer(start,count):le_uint()
-      subtree:add(buffer(start,count),"SourceIdentifier: " .. sourceIdentifier)
+      subtree:add_le(citp_fields.msex_source_identifier, buffer(start,count))
       start = start + count
       
       -- Frame Format
       count = 4
       local frameFormat = buffer(start,count):string()
-      subtree:add(buffer(start,count),"FrameFormat:  " .. frameFormat)
+      subtree:add_le(citp_fields.msex_format, buffer(start,count))
       start = start + count
       
       -- Dimentions
-      dims, count = MSEX_Dims (buffer, start)
-      subtree:add(buffer(start,count), string.format("Dimensions: %s", dims))
+      dims, count = extract_msex_dimensions (buffer, start)
+      subtree:add_le(citp_fields.msex_dimensions, buffer(start,count))
       start = start + count
       
       -- FPS
       count = 1
       local fps = buffer(start,count):le_uint()
-      subtree:add(buffer(start,count),"FPS: " .. fps)
+      subtree:add_le(citp_fields.msex_fps, buffer(start,count))
       start = start + count
       
       -- Timeout
       count = 1
       local timeout = buffer(start,count):le_uint()
-      subtree:add(buffer(start,count),"Timeout: " .. timeout)
+      subtree:add_le(citp_fields.msex_timeout, buffer(start,count))
       start = start + count
       
       --info
-      pinfo.cols.info:append (string.format("SOURCE:%d %s %s@%d %dSec",
+      pinfo.cols.info:append (string.format(" > Source:%d %s %s@%d %dSec",
                                             sourceIdentifier,
                                             frameFormat,
                                             dims,
                                             fps,
                                             timeout))
-    end
+    end -- RqSt
     
-    -- MSEX 1.0 - 1.2/EThn ------------------------------------------------------------------
-    -- Element Thumbnail message
-    if (buffer(22,4):string() == "EThn") and (version <= "1.1") then
-      start = 26
+    -- MSEX/EThn - Element Thumbnail message -------------------------------------
+    if msex_content_type == "EThn" then
       
-      -- Library Type
-      str, count = MSEX_LibraryType (buffer, start)
-      subtree:add(buffer(start,count),string.format("Library Type: %s",str))
-      start = start + count
+      subtree:add_le(citp_fields.msex_library_type, buffer(start,1))
+
+      start = start + 1
       
       if version == "1.0" then
         count = 1
         libraryNumber = buffer(start,count):le_uint()
-        subtree:add(buffer(start,count),"LibraryNumber: " .. libraryNumber)
-        start = start + count
-      elseif version <= "1.2" then -- There is no definition for 1.2
-        -- LibraryID
-        libraryNumber, count = MSEX_LibraryID(buffer, start)
-        subtree:add(buffer(start,count),string.format("LibraryId: %s", libraryNumber))
-        start = start + count
+        subtree:add_le(citp_fields.msex_library_number, buffer(start,count))
+      elseif version <= "1.2" then
+        libraryNumber, count = extract_msex_library_id(buffer, start)
+        subtree:add_le(citp_fields.msex_library_id, buffer(start,count), libraryNumber)
       end
+
+      start = start + count
       
       -- Element
       count = 1
       element = buffer(start,count):uint()
-      subtree:add(buffer(start,count),string.format("Element: %d", element))
+      subtree:add_le(citp_fields.msex_element_number, buffer(start,count))
       start = start + count
       
       -- Thumbnail Format
       count = 4
-      subtree:add(buffer(start,count),string.format("Thumbnail Format: %s", buffer(start,count):string()))
+      subtree:add_le(citp_fields.msex_format, buffer(start,count))
       start = start + count
       
       -- Dimentions
-      dims, count = MSEX_Dims (buffer, start)
-      subtree:add(buffer(start,count), string.format("Dimensions: %s", dims))
+      dims, count = extract_msex_dimensions (buffer, start)
+      subtree:add_le(citp_fields.msex_dimensions, buffer(start,count), dims)
       start = start + count
       
       --Thumb Buffer
       count = 2
-      subtree:add(buffer(start,count),string.format("Thumbs Buffer: %d", buffer(start,count):le_uint()))
+      buffer_subtree, value = subtree:add_packet_field(citp_fields.msex_buffer_size, buffer(start,count), ENC_LITTLE_ENDIAN)
       start = start + count
       
       -- Remainder of packet is frame data, or part of frame data
-      subtree:add(buffer(start),"Data")
+      buffer_subtree:add_le(citp_fields.msex_buffer, buffer(start))
       
-        --info
-        pinfo.cols.info:append (string.format("ETHn LibraryID:%s Element:%d",
-                                              libraryNumber,
-                                              element
-                                              )
-                                )
+      --info
+      pinfo.cols.info:append(string.format(" > LibraryID:%s Element:%d",
+                                           libraryNumber,
+                                           element))
 
-    end -- end EThn 1.0 - 1.2
+    end -- EThn
     
-    -- MSEX/ELIn ------------------------------------------------------------------
-    -- Element Library Information message
-    if (buffer(22,4):string() == "ELIn") then
-      pinfo.cols.info:append ("ELIn >") -- info
-      start = 26
+    -- MSEX/ELIn - Element Library Information message ---------------------------
+    if msex_content_type == "ELIn" then
       
       -- Library Type
-      str, count = MSEX_LibraryType (buffer, start)
-      subtree:add(buffer(start,count),string.format("Library Type: %s",str))
+      count = 1
+      subtree:add_le(citp_fields.msex_library_type, buffer(start,count))
       start = start + count
       
-      -- Element Count
-      count = 1
-
-      if version >= "1.2" then
+      if version <= "1.2" then
+        count = 1
+        element_count = buffer(start,count):uint()
+        element_tree, value = subtree:add_packet_field(citp_fields.msex_library_count, buffer(start,count), ENC_LITTLE_ENDIAN)
+      else
         count = 2
+        element_count = buffer(start,count):uint()
+        element_tree, value = subtree:add_packet_field(citp_fields.msex_library_count12, buffer(start,count), ENC_LITTLE_ENDIAN)
       end
 
-      element_count = buffer(start,count):uint()
-      element_tree = subtree:add(buffer(start,count),string.format("Element Count: %d", element_count))
       start = start + count
       
       for i = 1, element_count do
         if version == "1.0" then
-          -- LibraryNumber
           count = 1
-          lib_tree = element_tree:add(buffer(start,count),"LibraryNumber: " .. buffer(start,count):uint())
+          lib_tree, value = element_tree:add_packet_field(citp_fields.msex_library_number, buffer(start,count), ENC_LITTLE_ENDIAN)
+          lib_treee:add_le(citp_fields.msex_library_number, buffer(start,count), ENC_LITTLE_ENDIAN)
         else
-          -- LibraryID
-          str, count = MSEX_LibraryID(buffer, start)
-          lib_tree = element_tree:add(buffer(start,count),string.format("LibraryId: %s", str))
+          str, count = extract_msex_library_id(buffer, start)
+          lib_tree, value = element_tree:add_packet_field(citp_fields.msex_library_id, buffer(start,count), ENC_STRING)
+          lib_tree:set_text("Library ID: " .. str)
+          lib_tree:add_le(citp_fields.msex_library_id, buffer(start,count), str)
         end
         start = start + count
         
         if version >= "1.2" then
           count = 4
-          lib_tree:add(buffer(start,count), "SerialNumber: " .. buffer(start,count):uint())
+          lib_tree:add_le(citp_fields.msex_element_serial_number, buffer(start,count))
           start = start + count
         end
 
         -- DMX Min
         count = 1
-        lib_tree:add(buffer(start,count),string.format("DMX Min: %s", buffer(start,count):uint()))        
+        lib_tree:add_le(citp_fields.msex_element_dmx_range_min, buffer(start,count))
         start = start + count
         
         -- DMX Max
         count = 1
-        lib_tree:add(buffer(start,count),string.format("DMX Max: %s", buffer(start,count):uint()))        
+        lib_tree:add_le(citp_fields.msex_element_dmx_range_max, buffer(start,count))
         start = start + count
         
-        count = 0
-        str=""
-        
-        while buffer(start + count,1):uint() ~= 0 do
-          str = str .. buffer(start+count,1):string()
-          count = count + 2
-        end
-        count = count + 2
-        
-        lib_tree:add(buffer(start, count), string.format("Name: %s", str))
+        str, count = citp_extract_ucs2(buffer, start)
+        lib_tree:add_le(citp_fields.msex_element_name, buffer(start, count), str)
         start = start + count
         
-        if version >= "1.1" then
+        if version == "1.1" then
           count = 1
-          
-          if version >= "1.2" then
-          	count = 2
-          end
-
-          lib_tree:add(buffer(start,count),string.format("Sub Libraries %d", buffer(start,count):uint()))        
+          lib_tree:add_le(citp_fields.msex_library_count, buffer(start,count))
+          start = start + count
+        end
+        
+        if version >= "1.2" then
+          count = 2
+          lib_tree:add_le(citp_fields.msex_library_count12, buffer(start,count))
           start = start + count
         end
       
-        count = 1
-
-        if version >= "1.2" then 
+        if version <= "1.1" then 
+          count = 1
+          lib_tree:add_le(citp_fields.msex_element_count, buffer(start,count))
+        else
           count = 2
+          lib_tree:add_le(citp_fields.msex_element_count12, buffer(start,count))
         end
 
-        lib_tree:add(buffer(start,count),string.format("Element Count: %d", buffer(start,count):uint()))        
         start = start + count
       end
-      pinfo.cols.info:append (string.format("Elements: %d",element_count))
+      pinfo.cols.info:append(" > Elements: " .. element_count)
       
-    end
+    end -- ELIn
     
-    -- MSEX/LSta ------------------------------------------------------------------
-    -- Layer Status message
-    if buffer(22,4):string() == "LSta" then
-      pinfo.cols.info:append ("LSta >") -- info
-      
-      
-      start = 26
+    -- MSEX/LSta - Layer Status message ------------------------------------------
+    if msex_content_type == "LSta" then
       
       count = 1
       layercount = buffer(start,count):uint() 
-      subtree:add(buffer(start,count), "Layer Count: " .. layercount)
-      
-      LSta = {}
-      LSta_status = {}
-      
+      layers_subtree, value = subtree:add_packet_field(citp_fields.msex_library_count, buffer(start,count), ENC_LITTLE_ENDIAN)
+      start = start + count
+
       for i = 1, layercount do
+        
+        count = 1
+        -- TODO: use dummy field to higlight whole layer " (".. buffer(start+2,1):uint().."/"..buffer(start+3,1):uint()..")"
+        layer_subtree, value = layers_subtree:add_packet_field(citp_fields.msex_layer_number, buffer(start,count), ENC_LITTLE_ENDIAN)
+
+        layer_subtree:add_le(citp_fields.msex_layer_number, buffer(start,count))
         start = start + count
         
         count = 1
-        LSta[i] = subtree:add(buffer(start,count), "Layer Number:" .. buffer(start,count):uint() .." (".. buffer(start+2,1):uint().."/"..buffer(start+3,1):uint()..")")
+        layer_subtree:add_le(citp_fields.msex_physical_output, buffer(start,count))
         start = start + count
         
-        count = 1
-        LSta[i]:add(buffer(start,count), "Physical Output: " .. buffer(start,count):uint())
-        start = start + count
-        
-        count = 1
-        LSta[i]:add(buffer(start,count), "Media Library: " .. buffer(start,count):uint())
-        start = start + count
-        
-        count = 1
-        LSta[i]:add(buffer(start,count), "Media Number: " .. buffer(start,count):uint())
-        start = start + count
-        
-        count = 0
-        str=""
-        
-        while buffer(start+count,1):uint() ~= 0 do
-          str = str .. buffer(start+count,1):string()
-          count = count + 2
+        if version >= "1.2" then
+          count = 1
+          layer_subtree:add_le(citp_fields.msex_library_type, buffer(start, count))
+          start = start + count
         end
-        count = count + 2
+
+        if version <= "1.1" then
+          count = 1
+          layer_subtree:add_le(citp_fields.msex_library_number, buffer(start,count))
+          start = start + count
+        else
+          LibraryID, count = extract_msex_library_id (buffer, start)
+          subtree:add_le(citp_fields.msex_library_id, buffer(start,count), LibraryID)
+          start = start + count
+        end
+
+        count = 1
+        layer_subtree:add_le(citp_fields.msex_element_number, buffer(start,count))
+        start = start + count
         
-        LSta[i]:add(buffer(start,count), "Media Name: " .. str)
+        str, count = citp_extract_ucs2(buffer, start)
+        layer_subtree:add_le(citp_fields.msex_element_name, buffer(start,count), str)
         start = start + count
         
         count = 4
-        length = buffer(start,count):le_uint()
-        LSta[i]:add(buffer(start,count), "Media Position: " .. length)
+        layer_subtree:add_le(citp_fields.msex_media_position, buffer(start,count))
         start = start + count
         
         count = 4
-        length = buffer(start,count):le_uint()
-        LSta[i]:add(buffer(start,count), "Media Length: " .. length)
+        layer_subtree:add_le(citp_fields.msex_media_length, buffer(start,count))
         start = start + count
         
         count = 1
-        LSta[i]:add(buffer(start,count), "Media FPS: " .. buffer(start,count):uint())
+        layer_subtree:add_le(citp_fields.msex_fps, buffer(start,count))
         start = start + count
-        
+
         count = 4
-        str = ""
-        current_stat = buffer(start+3,1) .. buffer(start+2,1).. buffer(start+1,1).. buffer(start,1)
-        
-        if bit.band(current_stat,00000001) > 0 then
-          str = str .. "MediaPlaying, "
-        end
-        if bit.band(current_stat,00000002) > 0 then -- 1.2 Only
-          str = str .. "MediaPlaybackReverse, "
-        end
-        if bit.band(current_stat,00000004) > 0 then -- 1.2 Only
-          str = str .. "MediaPlaybackLooping, "
-        end
-        if bit.band(current_stat,00000008) > 0 then -- 1.2 Only
-          str = str .. "MediaPlaybackBouncing, "
-        end
-        if bit.band(current_stat,00000010) > 0 then -- 1.2 Only
-          str = str .. "MediaPlaybackRandom, "
-        end
-        if bit.band(current_stat,00000020) > 0 then -- 1.2 Only
-          str = str .. "MediaPaused, "
-        end
-        if current_stat == "00000000" then
-          str = "None, "
-        end
-        
-        str = string.sub(str,1,-3)
-        
-        LSta[i]:add(buffer(start,count), "Layer Status: ".."("..current_stat..") "..str)
+        flag_subtree, value = layer_subtree:add_packet_field(citp_fields.msex_layer_status, buffer(start,count), ENC_LITTLE_ENDIAN)
+        flag_subtree:add_le(citp_fields.msex_layer_status_playing, buffer(start,count))
+        flag_subtree:add_le(citp_fields.msex_layer_status_playback_reverse, buffer(start,count))
+        flag_subtree:add_le(citp_fields.msex_layer_status_playback_looping, buffer(start,count))
+        flag_subtree:add_le(citp_fields.msex_layer_status_playback_bouncing, buffer(start,count))
+        flag_subtree:add_le(citp_fields.msex_layer_status_playback_random, buffer(start,count))
+        flag_subtree:add_le(citp_fields.msex_layer_status_paused, buffer(start,count))
+        start = start + count
       end -- end for : Layer Count
-      --info
-      pinfo.cols.info:append (string.format("LAYER COUNT:%d",layercount))
-    end -- end if : MSEX/LSta
+
+      pinfo.cols.info:append (string.format(" Layer Count:%d",layercount))
+    end -- LSta
     
-    -- MSEX/MEIn ---------------------------------------------------------------------
-    -- Media Element Information message
-    if (buffer(22,4):string() == "MEIn") then
-      start = 26
+    -- MSEX/MEIn - Media Element Information message -----------------------------
+    if msex_content_type == "MEIn" then
       
       if verison == "1.0" then
-        -- LibraryNumber
         count = 1
-        libraryNumber = buffer(start,count):uint()
-        subtree:add(buffer(start,count),"LibraryNumber: " .. libraryNumber)
+        library_number = buffer(start,count):uint()
+        subtree:add_le(citp_fields.msex_library_number, buffer(start,count))
+
+        pinfo.cols.info:append(" > Library Number: " .. library_number)
+
         start = start + count
       else
-        -- LibraryID
-        libraryId, count = MSEX_LibraryID(buffer, start)
-        subtree:add(buffer(start,count),string.format("LibraryId: %s", str))
+        library_id, count = extract_msex_library_id(buffer, start)
+        subtree:add_le(citp_fields.msex_library_id, buffer(start,count), library_id)
+
+        pinfo.cols.info:append(" > Library ID: " .. library_id)
+
         start = start + count
       end
 
-      count = 1
+      if version <= "1.1" then
+        count = 1
 
-      if version >= "1.2" then
+        element_count = buffer(start,count):uint()
+        elements_subtree, value = subtree:add_packet_field(citp_fields.msex_element_count, buffer(start,count), ENC_LITTLE_ENDIAN)
+        start = start + count
+      else
         count = 2
-      end
 
-      element_count = buffer(start,count):uint()
-      MEIn = subtree:add(buffer(start,count),string.format("Element Count: %d", element_count))
-      start = start + count
+        element_count = buffer(start,count):uint()
+        elements_subtree, value = subtree:add_packet_field(citp_fields.msex_element_count12, buffer(start,count), ENC_LITTLE_ENDIAN)
+        start = start + count
+      end
       
-      MEIn = {}
       for i = 1, element_count do
         count = 1
-        MEIn[i] = subtree:add(buffer(start,count),string.format("Number: %d", buffer(start,count):uint()))
+        -- TODO: Add dummy field
+        element_subtree = elements_subtree:add_packet_field(citp_fields.msex_element_number, buffer(start,count), ENC_LITTLE_ENDIAN)
         start = start + count
         
         if version >= "1.2" then
           count = 4
-          MEIn[i]:add(buffer(start,count),string.format("SerialNumber: %d", buffer(start,count):uint()))
+          element_subtree:add_le(citp_fields.msex_element_serial_number, buffer(start,count))
           start = start + count
         end
 
         count = 1
-        MEIn[i]:add(buffer(start,count),string.format("DMX Start: %d", buffer(start,count):uint()))
+        element_subtree:add_le(citp_fields.msex_element_dmx_range_min, buffer(start,count))
         start = start + count
         
         count = 1
-        MEIn[i]:add(buffer(start,count),string.format("DMX End: %d", buffer(start,count):uint()))
+        element_subtree:add_le(citp_fields.msex_element_dmx_range_max, buffer(start,count))
         start = start + count
         
-        count = 0
-        str=""
-        while buffer(start + count,1):uint() ~= 0 do --THIS IS BROKEN!?!?!
-          str = str .. buffer(start+count,1):string()
-          count = count + 2
-        end
-        count = count +2
-        MEIn[i]:add(buffer(start,count),string.format("Name: %s", str))
-        start = start + count --debug
-        
-        -- This is a hack because le_uint64() returns the bigendian result
+        str, count = citp_extract_ucs2(buffer, start)
+        element_subtree:add_le(citp_fields.msex_element_name, buffer(start,count), str)
+        start = start + count
+
+        -- TODO: convert
+
+        count = 8
+        element_subtree:add_le(citp_fields.msex_media_timestamp, buffer(start,count))
+        start = start + count
+
+        --[[ This is a hack because le_uint64() returns the bigendian result
         count = 8
         epoch = 0
         mult = 1
         
         for j=0, count - 1 do
           epoch = epoch + (buffer(start+j, 1):uint() * mult)
-          --debug
-          --MEIn[i]:add(buffer(start,count),string.format("%02d: %sx%d=%s", j, buffer(start+j, 1):uint(), mult, buffer(start+j, 1):uint()*mult))  
           mult = mult * 256
         end
         
         -- The time OSX displays and the epoch caluclation is off by a number of minues.
         -- epoch and os.date seem to jive, but OSX time is wrong?
-        MEIn[i]:add(buffer(start,count),string.format("Time: %s (epoch:%d)", os.date("%c", epoch), epoch))
-        
-        start = start + count
-        
+        element_subtree:add_le(buffer(start,count),string.format("Time: %s (epoch:%d)", os.date("%c", epoch), epoch))
+        ]]--
+
         -- Dimentions
-        dims, count = MSEX_Dims (buffer, start)
-        subtree:add(buffer(start,count), string.format("Dimensions: %s", dims))
+        dims, count = extract_msex_dimensions (buffer, start)
+        element_subtree:add_le(citp_fields.msex_dimensions, buffer(start,count), dims)
         start = start + count
         
         count = 4
-        MEIn[i]:add(buffer(start,count),string.format("Length (Frames): %d", buffer(start,count):le_uint()))
+        element_subtree:add_le(citp_fields.msex_media_length, buffer(start,count))
         start = start + count
         
         count = 1
-        MEIn[i]:add(buffer(start,count),string.format("FPS: %d", buffer(start,count):uint()))
+        element_subtree:add_le(citp_fields.msex_fps, buffer(start,count))
         start = start + count
         
       end
       
-      
-      
-      -- info
-      if version == "1.0" then
-        pinfo.cols.info:append (string.format("MEIn LibraryNumber: %s Elements: %d",libraryNumber ,element_count))
-      else
-        pinfo.cols.info:append (string.format("MEIn LibraryID: %s Elements: %d",libraryId ,element_count))
-      end
-    end -- end if: MSEX/MEIn
+      pinfo.cols.info:append(string.format(", Elements: %d", element_count))
+    end -- MEIn
     
-    -- MSEX/GEIn ---------------------------------------------------------------------
-    -- Get Element Information message
-    if (buffer(22,4):string() == "GEIn") then
-      start = 26
-      
-      -- Library Type
-      str, count = MSEX_LibraryType (buffer, start)
-      subtree:add(buffer(start,count),string.format("Library Type: %s",str))
-      start = start + count
-
-      if version == "1.0" then
-        count = 1
-        libraryNumber = buffer(start,count):le_uint()
-        subtree:add(buffer(start,count),"LibraryNumber: " .. libraryNumber)
-        start = start + count
-      else
-        -- LibraryID
-        libraryId, count = MSEX_LibraryID(buffer, start)
-        subtree:add(buffer(start,count),string.format("LibraryId: %s", libraryId))
-        start = start + count
-      end
+    -- MSEX/GEIn - Get Element Information message -------------------------------
+    if msex_content_type == "GEIn" then
       
       count = 1
-      
-      if version >= "1.2" then
-        count = 2
-      end
-      
-      elementCount = buffer(start,count):le_uint()
-      subtree:add(buffer(start,count),"ElementCount: " .. elementCount)
+      subtree:add_le(citp_fields.msex_library_type, buffer(start,count))
       start = start + count
-      
-      if (elementCount > 0) then
-        txt = ""
+
+      if verison == "1.0" then
         count = 1
-        for i = 1, elementCount do
-          elements:add(buffer(start,count),"Element Number: %d" .. buffer(start,count):le_uint())
-          start = start + count
-        end
+        library_number = buffer(start,count):uint()
+        subtree:add_le(citp_fields.msex_library_number, buffer(start,count))
+
+        pinfo.cols.info:append(" > Library Number: " .. library_number)
+
+        start = start + count
       else
-        txt = "All"
+        library_id, count = extract_msex_library_id(buffer, start)
+        subtree:add_le(citp_fields.msex_library_id, buffer(start,count), library_id)
+
+        pinfo.cols.info:append(" > Library ID: " .. library_id)
+
+        start = start + count
+      end
+
+      if version <= "1.1" then
+        count = 1
+
+        element_count = buffer(start,count):uint()
+        elements_subtree, value = subtree:add_packet_field(citp_fields.msex_element_count, buffer(start,count), ENC_LITTLE_ENDIAN)
+        start = start + count
+      else
+        count = 2
+
+        element_count = buffer(start,count):uint()
+        elements_subtree, value = subtree:add_packet_field(citp_fields.msex_element_count12, buffer(start,count), ENC_LITTLE_ENDIAN)
+        start = start + count
       end
       
-      -- info
-      if version == "1.0" then
-        pinfo.cols.info:append (string.format("GEIn LibraryNumber: %s Count: %s (%d)", libraryNumber, txt, elementCount))
-      else
-        pinfo.cols.info:append (string.format("GEIn LibraryID: %s Count: %s (%d)", libraryId, txt, elementCount))
+      for i = 1, element_count do
+        count = 1
+        elements_subtree:add_le(citp_fields.msex_element_number, buffer(start,count))
+        start = start + count
       end
-    end -- end if: MSEX/GEIn
+      
+      pinfo.cols.info:append(string.format(", Elements: %d", element_count))
+    end -- GEIn
    
-    -- MSEX/GELI ---------------------------------------------------------------------
-    -- Get Element Library Information message
-    if (buffer(22,4):string() == "GELI") then
-      start = 26
+    -- MSEX/GELI - Get Element Library Information message -----------------------
+    if msex_content_type == "GELI" then
       
-      -- Library Type
-      str, count = MSEX_LibraryType (buffer, start)
-      subtree:add(buffer(start,count),string.format("Library Type: %s",str))
+      count = 1
+      subtree:add_le(citp_fields.msex_library_type, buffer(start,count))
       start = start + count
+
       
       if version >= "1.1" then
-        -- LibraryID
-        parentLibraryId, count = MSEX_LibraryID(buffer, start)
-        subtree:add(buffer(start,count),string.format("ParentLibraryId: %s", parentLibraryId))
+        parent_library_id, count = extract_msex_library_id(buffer, start)
+        subtree:add_le(citp_fields.msex_parent_library_id, buffer(start,count))
         start = start + count
       end
 
-      count = 1
-
-      if version >= "1.2" then
-        count = 2
-      end
-
-      libraryCount = buffer(start,count):uint()
-      if libraryCount == 0 then
-        txt = "All"
-        else
-        txt = ""
-      end
-      elements = subtree:add(buffer(start,count),string.format("Library Count: (%d) %s", libraryCount, txt))
-      start = start + count
-      
-      if (libraryCount > 0) then
+      if version <= "1.1" then
         count = 1
-        for i = 1, libraryCount do
-          elements:add(buffer(start,count),"Library Number: " .. buffer(start,count):le_uint())
-          start = start + count
-        end
-      end
-      -- info
-      pinfo.cols.info:append (string.format("GELI Count: %s (%d)", txt, libraryCount))
-    end -- end if: MSEX/GELI
-    
-    -- MSEX/GELT ------------------------------------------------------------------
-    -- Get Element Library Thumbnail message
-    if (buffer(22,4):string() == "GELT") then
-      start = 26
-      
-      -- Thumbnail Format
-      count = 4
-      thumbnailFormat = buffer(start,count):string()
-      subtree:add(buffer(start,count),string.format("Thumbnail Format: %s", thumbnailFormat))
-      start = start + count
-      
-      -- Dimentions
-      dims, count = MSEX_Dims (buffer, start)
-      subtree:add(buffer(start,count), string.format("Dimensions: %s", dims))
-      start = start + count
-      
-      -- Thumbnail Flags
-      count = 1
-      str = ""
-      current_stat = buffer(start,count):uint()
-      
-      if bit.band(current_stat,00000001) > 0 then
-        str = str .. "Preserve aspect ratio, "
-      end
-      if current_stat == "00000000" then
-        str = "None, "
-      end        
-      str = string.sub(str,1,-3) -- strip off the final ", "
-      
-      subtree:add(buffer(start,count), "Thumbnail Flags: ".."("..current_stat..") "..str)
-      
-      -- Library Type
-      str, count = MSEX_LibraryType (buffer, start)
-      subtree:add(buffer(start,count),string.format("Library Type: %s",str))
-      start = start + count
-      
-      -- LibraryCount
-      count = 1
 
-      if version == "1.2" then
+        library_count = buffer(start,count):uint()
+        library_subtree, value = subtree:add_packet_field(citp_fields.msex_library_count, buffer(start,count), ENC_LITTLE_ENDIAN)
+        start = start + count
+      else
         count = 2
+
+        library_count = buffer(start,count):uint()
+        library_subtree, value = subtree:add_packet_field(citp_fields.msex_library_count12, buffer(start,count), ENC_LITTLE_ENDIAN)
+        start = start + count
+      end
+      
+      count = 1
+      for i = 1, library_count do
+        library_subtree:add_le(citp_fields.msex_library_number, buffer(start,count))
+        start = start + count
       end
 
-      LibraryCount = buffer(start, count):uint()
-      elements = subtree:add(buffer(start, count), string.format("Library Count: %d", LibraryCount))
+      pinfo.cols.info:append(" > Library Count: " .. library_count)
+    end -- GELI
+    
+    -- MSEX/GELT - Get Element Library Thumbnail message -------------------------
+    if msex_content_type == "GELT" then
+
+      count = 4
+      subtree:add_le(citp_fields.msex_format, buffer(start,count))
       start = start + count
       
-      if (LibraryCount > 0) then
-        if (version == "1.0") then
-          -- Library Numbers
-          count = 1
-          for i = 1, LibraryCount do
-            elements:add(buffer(start,count),"Library Numbers: %d" .. buffer(start,count):le_uint())
-            start = start + count
-          end
-        else
-          -- LibraryID
-          count = 1
-          for i = 1, LibraryCount do
-            str, count = MSEX_LibraryID (buffer, start)
-            elements:add(buffer(start,count),string.format("Library ID: %s", str))
-            start = start + count
-          end
-        end
+      dims, count = extract_msex_dimensions (buffer, start)
+      subtree:add_le(citp_fields.msex_dimensions, buffer(start,count), dims)
+      start = start + count
+      
+      count = 1
+      flag_subtree, value = subtree:add_packet_field(citp_fields.msex_thumbnail_flags, buffer(start,count), ENC_LITTLE_ENDIAN)
+      flag_subtree:add_le(citp_fields.msex_thumbnail_flags_preserve_aspect, buffer(start,count))
+      start = start + count
+      
+      count = 1
+      subtree:add_le(citp_fields.msex_library_type, buffer(start,count))
+      start = start + count
+      
+      if version <= "1.1" then
+        count = 1
+        library_count = buffer(start,count):uint()
+        library_subtree, value = subtree:add_packet_field(citp_fields.msex_library_count, buffer(start,count), ENC_LITTLE_ENDIAN)
+        start = start + count
+      else
+        count = 2
+        library_count = buffer(start,count):uint()
+        library_subtree, value = subtree:add_packet_field(citp_fields.msex_library_count12, buffer(start,count), ENC_LITTLE_ENDIAN)
+        start = start + count
       end
       
-      -- info
-      pinfo.cols.info:append (string.format("GELT %s %s Count: %d",
-                                            thumbnailFormat,
-                                            dims,
-                                            LibraryCount)
-                              )
-    end -- end if: MSEX/GELT
+      for i = 1, library_count do
+        if version == "1.0" then
+          count = 1
+          subtree:add_le(citp_fields.msex_library_number, buffer(start,count))
+        else
+          library_id, count = extract_msex_library_id(buffer, start)
+          subtree:add_le(citp_fields.msex_library_id, buffer(start,count), library_id)
+        end
+        start = start + count
+      end
+
+      pinfo.cols.info:append(" > Library Count: " .. library_count)
+      
+    end -- GELT
     
-    
-    -- MSEX/GETh -------------------------------------------------------------
-    -- Get Element Get Element Thumbnail message
-    if (buffer(22,4):string() == "GETh") then
-      start = 26
+    -- MSEX/GETh - Get Element Get Element Thumbnail message ---------------------
+    if msex_content_type == "GETh" then
       
       -- Thumbnail Format
       count = 4
-      thumbnailFormat = buffer(start,count):string()
-      subtree:add(buffer(start,count), string.format("Thumbnail Format: %s", thumbnailFormat))
+      subtree:add_le(citp_fields.msex_format, buffer(start,count))
       start = start + count
       
       -- Width x Height
-      dims, count = MSEX_Dims (buffer, start)
-      subtree:add(buffer(start,count), string.format("Dimensions: %s", dims))
+      dims, count = extract_msex_dimensions (buffer, start)
+      subtree:add_le(citp_fields.msex_dimensions, buffer(start,count), dims)
       start = start + count
       
       -- Thumbnail Flags
       count = 1
-      str = ""
-      current_stat = buffer(start,count):uint()
-      
-      if bit.band(current_stat,00000001) > 0 then
-        str = str .. "Preserve aspect ratio, "
-      end
-      if current_stat == "00000000" then
-        str = "None, "
-      end        
-      str = string.sub(str,1,-3) -- strip off the final ", "
-      subtree:add(buffer(start,count), "Thumbnail Flags: ".."("..current_stat..") "..str)
+      flag_subtree, value = subtree:add_packet_field(citp_fields.msex_thumbnail_flags, buffer(start,count), ENC_LITTLE_ENDIAN)
+      flag_subtree:add_le(citp_fields.msex_thumbnail_flags_preserve_aspect, buffer(start,count))
       start = start +1
       
       -- Library Type
-      str, count = MSEX_LibraryType (buffer, start)
-      subtree:add(buffer(start,count),string.format("Library Type: %s",str))
-      start = start + count
+      subtree:add_le(citp_fields.msex_library_type, buffer(start, 1))
+      start = start + 1
       
       if version == "1.0" then
-        -- Library Numbers
         count = 1
-        subtree:add(buffer(start,count),"Library Numbers: %d" .. buffer(start,count):le_uint())
+        subtree:add_le(citp_fields.msex_library_number, buffer(start,count))
         start = start + count
-        
       else
-        -- LibraryID
-        LibraryID, count = MSEX_LibraryID (buffer, start)
-        subtree:add(buffer(start,count),string.format("Library ID: %s", LibraryID))
+        library_id, count = extract_msex_library_id (buffer, start)
+        subtree:add_le(citp_fields.msex_library_id, buffer(start,count), library_id)
         start = start + count
       end
 
-      -- Element Count
-      count = 1
-
-      if version == "1.2" then
+      if version <= "1.1" then
+        count = 1
+        element_count = buffer(start,count):le_uint()
+        element_subtree, value = subtree:add_packet_field(citp_fields.msex_element_count, buffer(start,count), ENC_LITTLE_ENDIAN)
+      else
         count = 2
+        element_count = buffer(start,count):le_uint()
+        element_subtree, value = subtree:add_packet_field(citp_fields.msex_element_count12, buffer(start,count), ENC_LITTLE_ENDIAN)
       end
 
-      element_count = buffer(start,count):le_uint()
-      element_tree = subtree:add(buffer(start,count),string.format("Element Count: %d", element_count))
       start = start + count
       
       -- Element Numbers
       for i = 1, element_count do
-        -- LibraryID
-        element = buffer(start,count):uint()
-        element_tree:add(buffer(start,count),string.format("Element Number: %s", element))
+        element_subtree:add_le(citp_fields.msex_element_number, buffer(start,count))
         start = start + count
       end
-      -- info
-      pinfo.cols.info:append (string.format("GETh %s %s Count: %d",
-                                              thumbnailFormat,
-                                              dims,
-                                              element_count)
-                                )
 
-    end -- end if: MSEX/GEThT
+      pinfo.cols.info:append(" > Elements " .. element_count)
+
+    end -- GETh
     
-    -- MSEX/GVSr -------------------------------------------------------------
-    -- GetVideoSources
-    if (buffer(22,4):string() == "GVSr")then
-        pinfo.cols.info:append (string.format("GVSr"))
-    end -- end if: MSEX/GVSr
+    -- MSEX/GVSr - GetVideoSources -----------------------------------------------
+    if msex_content_type == "GVSr" then
+    end -- GVSr
 
-    -- MSEX/VSrc -------------------------------------------------------------
-    -- Video Sources
-    if (buffer(22,4):string() == "VSrc")then
-      start = 26
+    -- MSEX/VSrc - Video Sources -------------------------------------------------
+    if msex_content_type == "VSrc" then
       
       -- Source Count
       count = 2
-      sourceCount = buffer(start,count):le_uint()
-      subtree:add(buffer(start,count), string.format("Source Count: %d", sourceCount))
+      source_count = buffer(start,count):le_uint()
+      sources_subtree, value = subtree:add_packet_field(citp_fields.msex_vsrc_source_count, buffer(start,count), ENC_LITTLE_ENDIAN)
       start = start + count
       
-      -- Source Info
-       source = {}
-      for i = 1, sourceCount do
-        -- SourceID
+      for i = 1, source_count do
+        -- Source Identifier
         count = 2
-        sourceID = buffer(start,count):le_uint()
-        source[i] = subtree:add(buffer(start,count), string.format("SourceID: %d", sourceID))
+        source_subtree, value = sources_subtree:add_le(citp_fields.msex_source_identifier, buffer(start,count))
+        source_subtree:add_le(citp_fields.msex_source_identifier, buffer(start,count))
         start = start + count
         
         -- Source Name
-        str, count = ucs2ascii(start, buffer) -- convert the usc2 to faux ASCII
-        source[i]:add(buffer(start,count), string.format("Name: %s", str))
+        str, count = citp_extract_ucs2(buffer, start)
+        source_subtree:add_le(citp_fields.msex_vsrc_source_name, buffer(start,count), str)
         start = start + count
         
         -- Physical Output
         count = 1
-        if buffer(start,count):le_uint() < 255 then
-          str = buffer(start,count):le_uint()
-        else
-          str = "(NONE)"
-        end
-        source[i]:add(buffer(start,count), string.format("Physical Out: %s",str))
+        source_subtree:add_le(citp_fields.msex_physical_output, buffer(start,count))
         start = start + count
 
         -- Layer Number
         count = 1
-        if buffer(start,count):le_uint() < 255 then
-          str = buffer(start,count):le_uint()
-        else
-          str = "(NONE)"
-        end
-        source[i]:add(buffer(start,count), string.format("Layer Number: %s",str))
+        source_subtree:add_le(citp_fields.msex_layer_number, buffer(start,count))
         start = start + count
 
         -- Flags
         count = 2
-        str = ""
-        current_stat = buffer(start,count):le_uint()
-      
-        if bit.band(current_stat,00000001) > 0 then
-          str = str .. "Without effects, "
-        end
-        if current_stat == 0 then
-          str = "None, "
-        end        
-      str = string.sub(str,1,-3) -- strip off the final ", "
-      
-      source[i]:add(buffer(start,count), string.format("Flags: %s",str))
-      start = start + count
-      
-      -- Width x Height
-      dim, count = MSEX_Dims (buffer, start)
-      source[i]:add(buffer(start,count), string.format("Dimensions: %s",dim)) 
-      start = start + count
-      
-
+        flag_subtree, value = source_subtree:add_packet_field(citp_fields.msex_source_flags, buffer(start,count), ENC_LITTLE_ENDIAN)
+        flag_subtree:add_le(citp_fields.msex_source_flags_without_effects, buffer(start,count))
+        start = start + count
+        
+        -- Width x Height
+        dim, count = extract_msex_dimensions (buffer, start)
+        source_subtree:add_le(citp_fields.msex_dimensions, buffer(start,count), dim)
+        start = start + count
       end
-      
-      pinfo.cols.info:append (string.format("VSrc"))
-    end -- end if: MSEX/VSrc
+    end -- VSrc
     
-  end -- end if : MSEX
+  end -- MSEX
   
-end -- end function citp_proto.dissector
+end -- end citp_proto.dissector
 
-
-
-
-
--- ---------------------------------------------------------------------
+-- -------------------------------------------------------------------------------
 -- Formatters
--- ---------------------------------------------------------------------
+-- -------------------------------------------------------------------------------
 
--- u2 to ascii
-function ucs2ascii(start, buffer)
-  count = 0
-  str=""
-  while buffer(start+count,1):uint() ~= 0 do
-    str = str .. buffer(start+count,1):string()
-    count = count + 2
-  end
-  count = count + 2
-
+function citp_extract_ucs1(buffer, start)
+  local str = buffer(start):stringz()
+  local count = string.len(str) + 1
   return str, count
 end
 
--- MSEX_LibraryID formatter
-function MSEX_LibraryID (buffer, start)
-  str = string.format("%d,%d,%d,%d", 
-                      buffer(start,1):uint(),
-                      buffer(start+1,1):uint(),
-                      buffer(start+2,1):uint(),
-                      buffer(start+3,1):uint()
-                      )
-  return str, 4 --string, count
+function citp_extract_ucs2(buffer, start)
+  local str = buffer(start):le_ustringz()
+  local count = (string.len(str) + 1) * 2
+  return str, count
 end
 
--- MSEX_Dims formatter
-function MSEX_Dims (buffer, start)
-  -- Width
-  count = 2
-  width = buffer(start,count):le_uint()
+function extract_msex_library_id(buffer, start)
+  local str = string.format("%d,%d,%d,%d", 
+    buffer(start,1):uint(),
+    buffer(start+1,1):uint(),
+    buffer(start+2,1):uint(),
+    buffer(start+3,1):uint()
+  )
+  return str, 4
+end
+
+function extract_msex_dimensions(buffer, start)
+  local count = 2
+  local width = buffer(start,count):le_uint()
+  local height = buffer(start+2,count):le_uint()
   
-  -- Height
-  height = buffer(start+2,count):le_uint()
-  
-  -- Width x Height
   count = 4
-  str = string.format("%dx%d", width, height)
-  start = start + count
-  return str, 4 --string, count
-end
-
--- MSEX_LibraryType formatter
-function MSEX_LibraryType (buffer, start)
-  libraryType = buffer(start,1):le_uint()
-  if     (libraryType == 1) then libraryType_name = "Media"
-    elseif (libraryType == 2) then libraryType_name = "Effects"
-  end
-  str = string.format("(%d) %s",libraryType,libraryType_name)
-  
-  return str, 1 -- string, count
+  local str = string.format("%dx%d", width, height)
+  return str, count
 end
 
 -- Add TCP Port
 -- port is based in PINF listen port
-function CITP_add_port (port)
+function CITP_add_port(port)
   if port > 0 then
-    if not found_ports [port] then
-      found_ports [port] = true
-      tcp_table:add (port,citp_proto)
+    if not found_ports[port] then
+      found_ports[port] = true
+      tcp_table:add(port, citp_proto)
       win_log = string.format("Added CITP Port: %d\n", port)
       if win == nil then
-        win = TextWindow.new("CITP dissector "..dissector_version.." ("..dissector_date..")")
+        win = TextWindow.new("CITP dissector " .. dissector_version .. " (" .. dissector_date .. ")")
       end
 
       win:append(win_log)
@@ -1103,15 +1019,9 @@ function CITP_add_port (port)
   end
 end
 
-
 -- always using UDP 4809
 udp_table:add(4809,citp_proto)
 
 --Debug, Add Mbox
 --CITP_add_port(6436) -- PRG Mbox
 --CITP_add_port(4011) -- Arkaos Media Master
-
-
-
-
-
